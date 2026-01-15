@@ -66,11 +66,7 @@
             <select id="sigungu" required></select>
           </div>
 
-          <div class="col-12">
-            <label>하는 일</label>
-            <input id="job" placeholder="예: 회사원, 자영업, 공무원…" />
-          </div>
-
+          <!-- 학년/반 -->
           <div class="col-4">
             <label>1학년 (1~6반)</label>
             <select id="g1" required></select>
@@ -82,6 +78,42 @@
           <div class="col-4">
             <label>3학년 (1~6반)</label>
             <select id="g3" required></select>
+          </div>
+
+          <!-- 하는 일: 선택 + 기타 직접입력 -->
+          <div class="col-6">
+            <label>하는 일</label>
+            <select id="jobType" required></select>
+          </div>
+          <div class="col-6" id="jobTextWrap" style="display:none;">
+            <label>기타(직접 입력)</label>
+            <input id="jobText" placeholder="예: 프리랜서, 은퇴, 주부 등" />
+          </div>
+
+          <!-- 생일 -->
+          <div class="col-4">
+            <label>생일 - 연도(1965~1972)</label>
+            <select id="birthYear" required></select>
+          </div>
+          <div class="col-4">
+            <label>생일 - 월</label>
+            <select id="birthMonth" required></select>
+          </div>
+          <div class="col-4">
+            <label>생일 - 일</label>
+            <select id="birthDay" required></select>
+          </div>
+
+          <div class="col-6">
+            <label>음력/양력</label>
+            <select id="birthCal" required>
+              <option value="양력" selected>양력</option>
+              <option value="음력">음력</option>
+            </select>
+          </div>
+          <div class="col-6">
+            <label class="muted">※ 월에 따라 ‘일’ 범위 자동 조정</label>
+            <div class="muted" id="birthHint"></div>
           </div>
 
           <div class="col-12 actions">
@@ -101,7 +133,7 @@
           <span class="muted" id="countText"></span>
         </div>
         <div style="min-width:240px;">
-          <input id="search" placeholder="이름/연락처/주소/하는일 검색" />
+          <input id="search" placeholder="이름/연락처/주소 검색" />
         </div>
       </div>
 
@@ -109,10 +141,11 @@
         <table>
           <thead>
             <tr>
-              <th style="min-width:80px;">이름</th>
+              <th style="min-width:90px;">이름</th>
               <th style="min-width:120px;">연락처</th>
               <th style="min-width:160px;">주소</th>
               <th style="min-width:120px;">하는 일</th>
+              <th style="min-width:140px;">생일</th>
               <th style="min-width:130px;">학년/반</th>
               <th style="min-width:160px;">관리</th>
             </tr>
@@ -125,10 +158,8 @@
 
 <script>
 (() => {
-  // ✅ 당신의 Apps Script Web App (/exec)
   const API_URL = "https://script.google.com/macros/s/AKfycbwoQgFscJc5mtAhSakeNL9x2MG0HPXIFGKHbreZYsVNLHsXeEJ5Rmqj1iWC20PdfxLsGw/exec";
 
-  // ---- 시/도 -> 구/군/시 ----
   const REGION = {
     "서울특별시": ["강남구","강동구","강북구","강서구","관악구","광진구","구로구","금천구","노원구","도봉구","동대문구","동작구","마포구","서대문구","서초구","성동구","성북구","송파구","양천구","영등포구","용산구","은평구","종로구","중구","중랑구"],
     "부산광역시": ["강서구","금정구","기장군","남구","동구","동래구","부산진구","북구","사상구","사하구","서구","수영구","연제구","영도구","중구","해운대구"],
@@ -148,21 +179,35 @@
     "경상남도": ["창원시","진주시","통영시","사천시","김해시","밀양시","거제시","양산시","의령군","함안군","창녕군","고성군","남해군","하동군","산청군","함양군","거창군","합천군"],
     "제주특별자치도": ["제주시","서귀포시"]
   };
+
+  const JOB_TYPES = ["회사원","자영업","교직원","사업","군인","공무원","기타"];
+  const YEARS = Array.from({length: 8}, (_,i)=> 1965+i);
+  const MONTHS = Array.from({length:12}, (_,i)=> i+1);
   const CLASSES = [1,2,3,4,5,6];
 
-  // ---- DOM ----
   const $ = (id) => document.getElementById(id);
   const form = $("form");
-  const nameEl = $("name");
-  const phoneEl = $("phone");
-  const jobEl = $("job");
-  const sidoEl = $("sido");
-  const sigunguEl = $("sigungu");
-  const g1El = $("g1"), g2El = $("g2"), g3El = $("g3");
-  const tbody = $("tbody");
   const status = $("status");
   const countText = $("countText");
   const searchEl = $("search");
+  const tbody = $("tbody");
+
+  const nameEl = $("name");
+  const phoneEl = $("phone");
+  const sidoEl = $("sido");
+  const sigunguEl = $("sigungu");
+  const g1El = $("g1"), g2El = $("g2"), g3El = $("g3");
+
+  const jobTypeEl = $("jobType");
+  const jobTextEl = $("jobText");
+  const jobTextWrap = $("jobTextWrap");
+
+  const birthYearEl = $("birthYear");
+  const birthMonthEl = $("birthMonth");
+  const birthDayEl = $("birthDay");
+  const birthCalEl = $("birthCal");
+  const birthHint = $("birthHint");
+
   const saveBtn = $("saveBtn");
   const resetBtn = $("resetBtn");
   const reloadBtn = $("reloadBtn");
@@ -173,8 +218,11 @@
   initSelects();
   loadList();
 
-  // ---- events ----
   sidoEl.addEventListener("change", () => fillSigungu(sidoEl.value));
+  jobTypeEl.addEventListener("change", onJobTypeChange);
+  birthYearEl.addEventListener("change", syncDays);
+  birthMonthEl.addEventListener("change", syncDays);
+
   resetBtn.addEventListener("click", () => resetForm());
   reloadBtn.addEventListener("click", () => loadList(true));
   searchEl.addEventListener("input", () => render());
@@ -202,8 +250,8 @@
     }
   });
 
-  // ---- UI init ----
   function initSelects() {
+    // 시/도
     sidoEl.innerHTML = "";
     Object.keys(REGION).forEach((s, idx) => {
       const opt = document.createElement("option");
@@ -213,6 +261,7 @@
     });
     fillSigungu(sidoEl.value);
 
+    // 반
     [g1El,g2El,g3El].forEach(sel => {
       sel.innerHTML = "";
       CLASSES.forEach(n => {
@@ -223,6 +272,35 @@
       });
       sel.value = "1";
     });
+
+    // 하는 일
+    jobTypeEl.innerHTML = "";
+    JOB_TYPES.forEach((t, idx) => {
+      const opt = document.createElement("option");
+      opt.value = t; opt.textContent = t;
+      if (idx === 0) opt.selected = true;
+      jobTypeEl.appendChild(opt);
+    });
+    onJobTypeChange();
+
+    // 생일 연/월
+    birthYearEl.innerHTML = "";
+    YEARS.forEach((y, idx) => {
+      const opt = document.createElement("option");
+      opt.value = String(y); opt.textContent = `${y}년`;
+      if (idx === 0) opt.selected = true;
+      birthYearEl.appendChild(opt);
+    });
+
+    birthMonthEl.innerHTML = "";
+    MONTHS.forEach((m, idx) => {
+      const opt = document.createElement("option");
+      opt.value = String(m); opt.textContent = `${m}월`;
+      if (idx === 0) opt.selected = true;
+      birthMonthEl.appendChild(opt);
+    });
+
+    syncDays();
   }
 
   function fillSigungu(sido) {
@@ -236,40 +314,89 @@
     });
   }
 
-  // ---- form ----
+  function onJobTypeChange() {
+    const isOther = jobTypeEl.value === "기타";
+    jobTextWrap.style.display = isOther ? "block" : "none";
+    if (!isOther) jobTextEl.value = "";
+  }
+
+  function daysInMonth(y, m) {
+    return new Date(Number(y), Number(m), 0).getDate(); // m: 1~12
+  }
+
+  function syncDays() {
+    const y = birthYearEl.value;
+    const m = birthMonthEl.value;
+    const maxDay = daysInMonth(y, m);
+
+    const prev = birthDayEl.value || "1";
+    birthDayEl.innerHTML = "";
+    for (let d=1; d<=maxDay; d++) {
+      const opt = document.createElement("option");
+      opt.value = String(d);
+      opt.textContent = `${d}일`;
+      birthDayEl.appendChild(opt);
+    }
+    birthDayEl.value = (Number(prev) <= maxDay) ? prev : "1";
+    birthHint.textContent = `${y}년 ${m}월은 1~${maxDay}일 선택 가능`;
+  }
+
   function readForm() {
     const name = nameEl.value.trim();
     const phone = phoneEl.value.trim();
     const sido = sidoEl.value;
     const sigungu = sigunguEl.value;
-    const job = jobEl.value.trim();
     const g1 = g1El.value, g2 = g2El.value, g3 = g3El.value;
+
+    const jobType = jobTypeEl.value;
+    const jobText = jobTextEl.value.trim();
+
+    const birthYear = birthYearEl.value;
+    const birthMonth = birthMonthEl.value;
+    const birthDay = birthDayEl.value;
+    const birthCal = birthCalEl.value;
 
     if (!name) return toast("이름을 입력하세요.");
     if (!phone) return toast("연락처를 입력하세요.");
-    if (!sido || !sigungu) return toast("주소(시/도, 구/군/시)를 선택하세요.");
+    if (!sido || !sigungu) return toast("주소를 선택하세요.");
+    if (!jobType) return toast("하는 일을 선택하세요.");
+    if (jobType === "기타" && !jobText) return toast("기타 내용을 입력하세요.");
 
-    // Apps Script가 기대하는 키 이름
-    return { name, phone, sido, sigungu, job, g1, g2, g3 };
+    return {
+      name, phone, sido, sigungu,
+      g1, g2, g3,
+      jobType, jobText,
+      birthYear, birthMonth, birthDay, birthCal
+    };
   }
 
   function resetForm() {
     editingId = null;
     saveBtn.textContent = "저장";
     form.reset();
+
     sidoEl.selectedIndex = 0;
     fillSigungu(sidoEl.value);
+
     g1El.value = "1"; g2El.value = "1"; g3El.value = "1";
+
+    jobTypeEl.selectedIndex = 0;
+    onJobTypeChange();
+
+    birthCalEl.value = "양력";
+    birthYearEl.selectedIndex = 0;
+    birthMonthEl.selectedIndex = 0;
+    syncDays();
+
     status.textContent = "";
     nameEl.focus();
   }
 
-  // ---- render ----
   function render() {
     const q = searchEl.value.trim().toLowerCase();
     const filtered = records.filter(r => {
       if (!q) return true;
-      const blob = `${r.name||""} ${r.phone||""} ${r.sido||""} ${r.sigungu||""} ${r.job||""} ${r.g1||""} ${r.g2||""} ${r.g3||""}`.toLowerCase();
+      const blob = `${r.name||""} ${r.phone||""} ${r.sido||""} ${r.sigungu||""} ${r.jobType||""} ${r.jobText||""}`.toLowerCase();
       return blob.includes(q);
     });
 
@@ -279,11 +406,16 @@
     filtered.forEach(r => {
       const tr = document.createElement("tr");
       const addr = `${escapeHtml(r.sido||"")} ${escapeHtml(r.sigungu||"")}`.trim();
+      const job = r.jobType === "기타" ? `기타: ${escapeHtml(r.jobText||"")}` : escapeHtml(r.jobType||"");
+      const birth = `${escapeHtml(r.birthYear||"")}.${escapeHtml(r.birthMonth||"")}.${escapeHtml(r.birthDay||"")} (${escapeHtml(r.birthCal||"")})`
+        .replaceAll("..",".");
+
       tr.innerHTML = `
         <td><strong>${escapeHtml(r.name||"")}</strong></td>
         <td>${escapeHtml(r.phone||"")}</td>
         <td>${addr || '<span class="muted">-</span>'}</td>
-        <td>${r.job ? escapeHtml(r.job) : '<span class="muted">-</span>'}</td>
+        <td>${job || '<span class="muted">-</span>'}</td>
+        <td>${birth || '<span class="muted">-</span>'}</td>
         <td>
           <span class="pill">1학년 ${escapeHtml(r.g1||"")}반</span><br/>
           <span class="pill">2학년 ${escapeHtml(r.g2||"")}반</span><br/>
@@ -294,9 +426,7 @@
             <button class="secondary" data-act="edit" data-id="${escapeAttr(r.id)}">수정</button>
             <button class="danger" data-act="del" data-id="${escapeAttr(r.id)}">삭제</button>
           </div>
-          <div class="muted" style="margin-top:6px;">
-            ${r.createdAt ? escapeHtml(new Date(r.createdAt).toLocaleString()) : ""}
-          </div>
+          <div class="muted" style="margin-top:6px;">${r.createdAt ? escapeHtml(new Date(r.createdAt).toLocaleString()) : ""}</div>
         </td>
       `;
       tbody.appendChild(tr);
@@ -321,7 +451,6 @@
 
     nameEl.value = r.name || "";
     phoneEl.value = r.phone || "";
-    jobEl.value = r.job || "";
 
     if (r.sido) {
       sidoEl.value = r.sido;
@@ -332,6 +461,16 @@
     g1El.value = String(r.g1 || "1");
     g2El.value = String(r.g2 || "1");
     g3El.value = String(r.g3 || "1");
+
+    jobTypeEl.value = r.jobType || "회사원";
+    onJobTypeChange();
+    jobTextEl.value = r.jobText || "";
+
+    birthCalEl.value = r.birthCal || "양력";
+    birthYearEl.value = String(r.birthYear || YEARS[0]);
+    birthMonthEl.value = String(r.birthMonth || MONTHS[0]);
+    syncDays();
+    birthDayEl.value = String(r.birthDay || "1");
 
     toast(`수정 중: ${r.name || ""}`);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -355,15 +494,13 @@
     }
   }
 
-  // ---- API ----
   async function loadList(forceToast=false) {
     setBusy(true);
     try {
-      const url = `${API_URL}?action=list&ts=${Date.now()}`; // 캐시 방지
+      const url = `${API_URL}?action=list&ts=${Date.now()}`;
       const res = await fetch(url, { method:"GET" });
       const json = await res.json();
       if (!json.ok) throw new Error(json.error || "list failed");
-
       records = Array.isArray(json.rows) ? json.rows : [];
       render();
       if (forceToast) toast("목록 새로고침 완료");
@@ -375,7 +512,6 @@
   }
 
   async function apiPost(payload) {
-    // ✅ 핵심: text/plain으로 보내서 CORS preflight(OPTIONS) 회피 → 모바일에서도 안정적
     const res = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -386,7 +522,6 @@
     return json;
   }
 
-  // ---- utils ----
   function setBusy(b) {
     saveBtn.disabled = b;
     resetBtn.disabled = b;
