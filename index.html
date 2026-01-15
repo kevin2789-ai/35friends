@@ -6,44 +6,41 @@
   <title>35friends</title>
   <style>
     :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", sans-serif; }
-    body { margin: 0; background:#f6f7fb; color:#111; }
-    .wrap { max-width: 980px; margin: 0 auto; padding: 18px; }
-    h1 { margin: 8px 0 14px; font-size: 20px; }
-    .card { background:#fff; border-radius: 14px; box-shadow: 0 6px 18px rgba(0,0,0,.06); padding: 14px; }
-    .grid { display:grid; gap:12px; grid-template-columns: repeat(12, 1fr); }
-    .col-12 { grid-column: span 12; }
-    .col-6 { grid-column: span 6; }
-    .col-4 { grid-column: span 4; }
-    label { display:block; font-size: 12px; color:#555; margin-bottom:6px; }
-    input, select, button {
-      width: 100%;
-      box-sizing: border-box;
-      padding: 10px 10px;
-      border-radius: 10px;
-      border: 1px solid #d8dbe6;
-      background: #fff;
-      font-size: 14px;
+    body { margin:0; background:#f6f7fb; color:#111; }
+    .wrap { max-width:980px; margin:0 auto; padding:16px; }
+    h1 { margin:8px 0 12px; font-size:20px; }
+    .card { background:#fff; border-radius:14px; box-shadow:0 6px 18px rgba(0,0,0,.06); padding:14px; }
+    .grid { display:grid; gap:12px; grid-template-columns:repeat(12, 1fr); }
+    .col-12{grid-column:span 12;}
+    .col-6{grid-column:span 6;}
+    .col-4{grid-column:span 4;}
+    label{display:block; font-size:12px; color:#555; margin-bottom:6px;}
+    input, select, button{
+      width:100%; box-sizing:border-box;
+      padding:11px 11px; border-radius:12px;
+      border:1px solid #d8dbe6; background:#fff; font-size:14px;
     }
-    input:focus, select:focus { outline: 2px solid rgba(99,102,241,.25); border-color:#6366f1; }
-    .actions { display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap; }
-    button { cursor:pointer; border:none; background:#6366f1; color:#fff; font-weight:700; }
-    button.secondary { background:#eef0ff; color:#2c2f7a; border:1px solid #d8dbff; }
-    button.danger { background:#ef4444; }
-    button:disabled { opacity:.6; cursor:not-allowed; }
-    .muted { color:#666; font-size:12px; }
-    table { width:100%; border-collapse: collapse; }
-    th, td { border-bottom: 1px solid #eef0f6; padding: 10px 6px; text-align:left; font-size: 13px; vertical-align: top; }
-    th { font-size:12px; color:#555; }
-    .pill { display:inline-block; padding:4px 8px; background:#f1f5ff; border:1px solid #dfe6ff; border-radius: 999px; font-size:12px; color:#2c2f7a; }
-    .small-btns { display:flex; gap:6px; }
-    .small-btns button { padding: 7px 10px; font-size: 12px; border-radius: 10px; }
-    .row { display:flex; gap:10px; flex-wrap:wrap; }
-    @media (max-width: 760px) {
-      .col-6, .col-4 { grid-column: span 12; }
-      .actions { justify-content: stretch; }
+    input:focus, select:focus{ outline:2px solid rgba(99,102,241,.25); border-color:#6366f1; }
+    button{ cursor:pointer; border:none; background:#6366f1; color:#fff; font-weight:800; }
+    button.secondary{ background:#eef0ff; color:#2c2f7a; border:1px solid #d8dbff; }
+    button.danger{ background:#ef4444; }
+    button:disabled{ opacity:.6; cursor:not-allowed; }
+    .actions{ display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
+    .muted{ color:#666; font-size:12px; }
+    .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between; }
+    table{ width:100%; border-collapse:collapse; }
+    th, td{ border-bottom:1px solid #eef0f6; padding:10px 6px; text-align:left; font-size:13px; vertical-align:top;}
+    th{ font-size:12px; color:#555; }
+    .pill{ display:inline-block; padding:4px 8px; background:#f1f5ff; border:1px solid #dfe6ff; border-radius:999px; font-size:12px; color:#2c2f7a; }
+    .btns{ display:flex; gap:6px; }
+    .btns button{ padding:7px 10px; font-size:12px; border-radius:10px; }
+    @media (max-width:760px){
+      .col-6,.col-4{grid-column:span 12;}
+      .actions{justify-content:stretch;}
     }
   </style>
 </head>
+
 <body>
   <div class="wrap">
     <h1>35friends</h1>
@@ -71,7 +68,7 @@
 
           <div class="col-12">
             <label>하는 일</label>
-            <input id="job" placeholder="예: 학생, 회사원, 자영업 등" />
+            <input id="job" placeholder="예: 회사원, 자영업, 공무원…" />
           </div>
 
           <div class="col-4">
@@ -98,7 +95,7 @@
     </div>
 
     <div class="card">
-      <div class="row" style="justify-content:space-between; align-items:center; margin-bottom:10px;">
+      <div class="row" style="margin-bottom:10px;">
         <div>
           <strong>저장된 목록</strong>
           <span class="muted" id="countText"></span>
@@ -117,7 +114,7 @@
               <th style="min-width:160px;">주소</th>
               <th style="min-width:120px;">하는 일</th>
               <th style="min-width:130px;">학년/반</th>
-              <th style="min-width:140px;">관리</th>
+              <th style="min-width:160px;">관리</th>
             </tr>
           </thead>
           <tbody id="tbody"></tbody>
@@ -128,10 +125,10 @@
 
 <script>
 (() => {
-  // ✅ 여기에 이미 넣어둠
+  // ✅ 당신의 Apps Script Web App (/exec)
   const API_URL = "https://script.google.com/macros/s/AKfycbwoQgFscJc5mtAhSakeNL9x2MG0HPXIFGKHbreZYsVNLHsXeEJ5Rmqj1iWC20PdfxLsGw/exec";
 
-  // ---- 시/도 -> 구/군/시 데이터(필요하면 확장 가능) ----
+  // ---- 시/도 -> 구/군/시 ----
   const REGION = {
     "서울특별시": ["강남구","강동구","강북구","강서구","관악구","광진구","구로구","금천구","노원구","도봉구","동대문구","동작구","마포구","서대문구","서초구","성동구","성북구","송파구","양천구","영등포구","용산구","은평구","종로구","중구","중랑구"],
     "부산광역시": ["강서구","금정구","기장군","남구","동구","동래구","부산진구","북구","사상구","사하구","서구","수영구","연제구","영도구","중구","해운대구"],
@@ -166,7 +163,6 @@
   const status = $("status");
   const countText = $("countText");
   const searchEl = $("search");
-
   const saveBtn = $("saveBtn");
   const resetBtn = $("resetBtn");
   const reloadBtn = $("reloadBtn");
@@ -174,7 +170,6 @@
   let records = [];
   let editingId = null;
 
-  // ---- init ----
   initSelects();
   loadList();
 
@@ -192,10 +187,10 @@
     setBusy(true);
     try {
       if (editingId) {
-        await apiPost({ action: "update", id: editingId, ...item });
+        await apiPost({ action:"update", id: editingId, ...item });
         toast("수정 저장 완료");
       } else {
-        await apiPost({ action: "add", ...item });
+        await apiPost({ action:"add", ...item });
         toast("저장 완료");
       }
       resetForm();
@@ -207,9 +202,8 @@
     }
   });
 
-  // ---- helpers ----
+  // ---- UI init ----
   function initSelects() {
-    // 시/도
     sidoEl.innerHTML = "";
     Object.keys(REGION).forEach((s, idx) => {
       const opt = document.createElement("option");
@@ -219,7 +213,6 @@
     });
     fillSigungu(sidoEl.value);
 
-    // 반 선택(1~6)
     [g1El,g2El,g3El].forEach(sel => {
       sel.innerHTML = "";
       CLASSES.forEach(n => {
@@ -243,21 +236,20 @@
     });
   }
 
+  // ---- form ----
   function readForm() {
     const name = nameEl.value.trim();
     const phone = phoneEl.value.trim();
     const sido = sidoEl.value;
     const sigungu = sigunguEl.value;
     const job = jobEl.value.trim();
-    const g1 = g1El.value;
-    const g2 = g2El.value;
-    const g3 = g3El.value;
+    const g1 = g1El.value, g2 = g2El.value, g3 = g3El.value;
 
     if (!name) return toast("이름을 입력하세요.");
     if (!phone) return toast("연락처를 입력하세요.");
     if (!sido || !sigungu) return toast("주소(시/도, 구/군/시)를 선택하세요.");
 
-    // Apps Script가 기대하는 키들
+    // Apps Script가 기대하는 키 이름
     return { name, phone, sido, sigungu, job, g1, g2, g3 };
   }
 
@@ -265,15 +257,14 @@
     editingId = null;
     saveBtn.textContent = "저장";
     form.reset();
-
     sidoEl.selectedIndex = 0;
     fillSigungu(sidoEl.value);
     g1El.value = "1"; g2El.value = "1"; g3El.value = "1";
-
     status.textContent = "";
     nameEl.focus();
   }
 
+  // ---- render ----
   function render() {
     const q = searchEl.value.trim().toLowerCase();
     const filtered = records.filter(r => {
@@ -283,12 +274,11 @@
     });
 
     countText.textContent = `(${filtered.length}건 / 전체 ${records.length}건)`;
-
     tbody.innerHTML = "";
+
     filtered.forEach(r => {
       const tr = document.createElement("tr");
       const addr = `${escapeHtml(r.sido||"")} ${escapeHtml(r.sigungu||"")}`.trim();
-
       tr.innerHTML = `
         <td><strong>${escapeHtml(r.name||"")}</strong></td>
         <td>${escapeHtml(r.phone||"")}</td>
@@ -300,11 +290,13 @@
           <span class="pill">3학년 ${escapeHtml(r.g3||"")}반</span>
         </td>
         <td>
-          <div class="small-btns">
+          <div class="btns">
             <button class="secondary" data-act="edit" data-id="${escapeAttr(r.id)}">수정</button>
             <button class="danger" data-act="del" data-id="${escapeAttr(r.id)}">삭제</button>
           </div>
-          <div class="muted" style="margin-top:6px;">${r.createdAt ? escapeHtml(new Date(r.createdAt).toLocaleString()) : ""}</div>
+          <div class="muted" style="margin-top:6px;">
+            ${r.createdAt ? escapeHtml(new Date(r.createdAt).toLocaleString()) : ""}
+          </div>
         </td>
       `;
       tbody.appendChild(tr);
@@ -341,7 +333,7 @@
     g2El.value = String(r.g2 || "1");
     g3El.value = String(r.g3 || "1");
 
-    status.textContent = `수정 중: ${r.name || ""} (${r.phone || ""})`;
+    toast(`수정 중: ${r.name || ""}`);
     window.scrollTo({ top: 0, behavior: "smooth" });
     nameEl.focus();
   }
@@ -352,7 +344,7 @@
 
     setBusy(true);
     try {
-      await apiPost({ action: "delete", id: String(id) });
+      await apiPost({ action:"delete", id: String(id) });
       toast("삭제 완료");
       if (editingId === String(id)) resetForm();
       await loadList();
@@ -363,15 +355,15 @@
     }
   }
 
+  // ---- API ----
   async function loadList(forceToast=false) {
     setBusy(true);
     try {
       const url = `${API_URL}?action=list&ts=${Date.now()}`; // 캐시 방지
-      const res = await fetch(url, { method: "GET" });
+      const res = await fetch(url, { method:"GET" });
       const json = await res.json();
       if (!json.ok) throw new Error(json.error || "list failed");
 
-      // rows: [{id, createdAt, name, phone, sido, sigungu, job, g1, g2, g3}, ...]
       records = Array.isArray(json.rows) ? json.rows : [];
       render();
       if (forceToast) toast("목록 새로고침 완료");
@@ -383,9 +375,10 @@
   }
 
   async function apiPost(payload) {
+    // ✅ 핵심: text/plain으로 보내서 CORS preflight(OPTIONS) 회피 → 모바일에서도 안정적
     const res = await fetch(API_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify(payload),
     });
     const json = await res.json();
@@ -393,6 +386,7 @@
     return json;
   }
 
+  // ---- utils ----
   function setBusy(b) {
     saveBtn.disabled = b;
     resetBtn.disabled = b;
@@ -401,7 +395,7 @@
 
   function toast(msg) {
     status.textContent = msg;
-    setTimeout(() => { if (status.textContent === msg) status.textContent = ""; }, 3000);
+    setTimeout(() => { if (status.textContent === msg) status.textContent = ""; }, 3500);
     return null;
   }
 
