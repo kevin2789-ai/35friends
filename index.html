@@ -7,7 +7,7 @@
   <style>
     :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", sans-serif; }
     body { margin:0; background:#f6f7fb; color:#111; }
-    .wrap { max-width:980px; margin:0 auto; padding:16px; }
+    .wrap { max-width:1100px; margin:0 auto; padding:16px; }
     h1 { margin:8px 0 12px; font-size:20px; }
     .card { background:#fff; border-radius:14px; box-shadow:0 6px 18px rgba(0,0,0,.06); padding:14px; }
     .grid { display:grid; gap:12px; grid-template-columns:repeat(12, 1fr); }
@@ -30,13 +30,37 @@
     .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between; }
     table{ width:100%; border-collapse:collapse; }
     th, td{ border-bottom:1px solid #eef0f6; padding:10px 6px; text-align:left; font-size:13px; vertical-align:top;}
-    th{ font-size:12px; color:#555; }
+    th{ font-size:12px; color:#555; white-space:nowrap; }
     .pill{ display:inline-block; padding:4px 8px; background:#f1f5ff; border:1px solid #dfe6ff; border-radius:999px; font-size:12px; color:#2c2f7a; }
-    .btns{ display:flex; gap:6px; }
-    .btns button{ padding:7px 10px; font-size:12px; border-radius:10px; }
+    .btns{ display:flex; gap:6px; flex-wrap:wrap; }
+    .btns button{ padding:7px 10px; font-size:12px; border-radius:10px; width:auto; }
+    .notice{ padding:10px 12px; border-radius:12px; background:#fffbe6; border:1px solid #ffe58f; color:#614700; font-size:12px; }
+
+    /* 정렬 버튼 */
+    th .sort{
+      background:transparent;
+      border:none;
+      padding:0;
+      font:inherit;
+      font-weight:800;
+      color:#2c2f7a;
+      cursor:pointer;
+      width:auto;
+    }
+    th .sort:after{
+      content:"";
+      display:inline-block;
+      width:12px;
+      margin-left:6px;
+      opacity:.65;
+    }
+    th .sort.asc:after{ content:"▲"; }
+    th .sort.desc:after{ content:"▼"; }
+
     @media (max-width:760px){
       .col-6,.col-4{grid-column:span 12;}
       .actions{justify-content:stretch;}
+      .btns button{ flex:1; }
     }
   </style>
 </head>
@@ -66,7 +90,6 @@
             <select id="sigungu" required></select>
           </div>
 
-          <!-- 학년/반 -->
           <div class="col-4">
             <label>1학년 (1~6반)</label>
             <select id="g1" required></select>
@@ -80,7 +103,6 @@
             <select id="g3" required></select>
           </div>
 
-          <!-- 하는 일: 선택 + 기타 직접입력 -->
           <div class="col-6">
             <label>하는 일</label>
             <select id="jobType" required></select>
@@ -90,7 +112,6 @@
             <input id="jobText" placeholder="예: 프리랜서, 은퇴, 주부 등" />
           </div>
 
-          <!-- 생일 -->
           <div class="col-4">
             <label>생일 - 연도(1965~1972)</label>
             <select id="birthYear" required></select>
@@ -121,7 +142,10 @@
             <button type="button" class="secondary" id="resetBtn">입력 초기화</button>
             <button type="button" class="secondary" id="reloadBtn">목록 새로고침</button>
           </div>
-          <div class="col-12 muted" id="status"></div>
+
+          <div class="col-12">
+            <div class="muted" id="status"></div>
+          </div>
         </div>
       </form>
     </div>
@@ -132,20 +156,25 @@
           <strong>저장된 목록</strong>
           <span class="muted" id="countText"></span>
         </div>
-        <div style="min-width:240px;">
-          <input id="search" placeholder="이름/연락처/주소 검색" />
+        <div style="min-width:260px;">
+          <input id="search" placeholder="이름/연락처/주소/하는일/생일 검색" />
         </div>
+      </div>
+
+      <div class="notice" style="margin-bottom:10px;">
+        정렬: 기본은 <b>최신(▼)</b> 입니다. 헤더를 누르면 오름/내림 정렬됩니다.
       </div>
 
       <div style="overflow:auto;">
         <table>
           <thead>
             <tr>
-              <th style="min-width:90px;">이름</th>
-              <th style="min-width:120px;">연락처</th>
-              <th style="min-width:160px;">주소</th>
-              <th style="min-width:120px;">하는 일</th>
-              <th style="min-width:140px;">생일</th>
+              <th><button type="button" class="sort" data-sort="createdAt">최신</button></th>
+              <th><button type="button" class="sort" data-sort="name">이름</button></th>
+              <th><button type="button" class="sort" data-sort="phone">연락처</button></th>
+              <th><button type="button" class="sort" data-sort="addr">주소</button></th>
+              <th><button type="button" class="sort" data-sort="job">하는 일</button></th>
+              <th><button type="button" class="sort" data-sort="birth">생일</button></th>
               <th style="min-width:130px;">학년/반</th>
               <th style="min-width:160px;">관리</th>
             </tr>
@@ -158,8 +187,10 @@
 
 <script>
 (() => {
+  // ✅ Apps Script Web App (/exec)
   const API_URL = "https://script.google.com/macros/s/AKfycbwoQgFscJc5mtAhSakeNL9x2MG0HPXIFGKHbreZYsVNLHsXeEJ5Rmqj1iWC20PdfxLsGw/exec";
 
+  // ✅ 시/도 -> 구/군/시
   const REGION = {
     "서울특별시": ["강남구","강동구","강북구","강서구","관악구","광진구","구로구","금천구","노원구","도봉구","동대문구","동작구","마포구","서대문구","서초구","성동구","성북구","송파구","양천구","영등포구","용산구","은평구","종로구","중구","중랑구"],
     "부산광역시": ["강서구","금정구","기장군","남구","동구","동래구","부산진구","북구","사상구","사하구","서구","수영구","연제구","영도구","중구","해운대구"],
@@ -186,6 +217,7 @@
   const CLASSES = [1,2,3,4,5,6];
 
   const $ = (id) => document.getElementById(id);
+
   const form = $("form");
   const status = $("status");
   const countText = $("countText");
@@ -196,6 +228,7 @@
   const phoneEl = $("phone");
   const sidoEl = $("sido");
   const sigunguEl = $("sigungu");
+
   const g1El = $("g1"), g2El = $("g2"), g3El = $("g3");
 
   const jobTypeEl = $("jobType");
@@ -214,6 +247,10 @@
 
   let records = [];
   let editingId = null;
+
+  // ✅ 기본 정렬: 최신 저장순(createdAt desc)
+  let sortKey = "createdAt";
+  let sortDir = "desc";
 
   initSelects();
   loadList();
@@ -321,7 +358,7 @@
   }
 
   function daysInMonth(y, m) {
-    return new Date(Number(y), Number(m), 0).getDate(); // m: 1~12
+    return new Date(Number(y), Number(m), 0).getDate();
   }
 
   function syncDays() {
@@ -346,7 +383,11 @@
     const phone = phoneEl.value.trim();
     const sido = sidoEl.value;
     const sigungu = sigunguEl.value;
-    const g1 = g1El.value, g2 = g2El.value, g3 = g3El.value;
+
+    // 기본값 보강 (선택 안 해도 1반)
+    const g1 = g1El.value || "1";
+    const g2 = g2El.value || "1";
+    const g3 = g3El.value || "1";
 
     const jobType = jobTypeEl.value;
     const jobText = jobTextEl.value.trim();
@@ -392,12 +433,47 @@
     nameEl.focus();
   }
 
+  // ---- 정렬 값 생성 ----
+  function sortValue(r, key){
+    if(key === "createdAt") return String(r.createdAt || "");
+
+    if(key === "addr")
+      return `${r.sido||""} ${r.sigungu||""}`.trim().toLowerCase();
+
+    if(key === "job"){
+      const j = (r.jobType === "기타") ? (r.jobText || "") : (r.jobType || "");
+      return String(j).toLowerCase();
+    }
+
+    if(key === "birth"){
+      const y = String(r.birthYear||"").padStart(4,"0");
+      const m = String(r.birthMonth||"").padStart(2,"0");
+      const d = String(r.birthDay||"").padStart(2,"0");
+      return `${y}-${m}-${d}-${r.birthCal||""}`;
+    }
+
+    return String(r[key] ?? "").toLowerCase();
+  }
+
   function render() {
     const q = searchEl.value.trim().toLowerCase();
-    const filtered = records.filter(r => {
+
+    let filtered = records.filter(r => {
       if (!q) return true;
-      const blob = `${r.name||""} ${r.phone||""} ${r.sido||""} ${r.sigungu||""} ${r.jobType||""} ${r.jobText||""}`.toLowerCase();
+      const birth = `${r.birthYear||""}.${r.birthMonth||""}.${r.birthDay||""} ${r.birthCal||""}`;
+      const job = (r.jobType === "기타") ? `기타 ${r.jobText||""}` : (r.jobType||"");
+      const addr = `${r.sido||""} ${r.sigungu||""}`.trim();
+      const blob = `${r.name||""} ${r.phone||""} ${addr} ${job} ${birth}`.toLowerCase();
       return blob.includes(q);
+    });
+
+    // ✅ 필터 후 정렬(기본: createdAt desc)
+    filtered.sort((a,b)=>{
+      const va = sortValue(a, sortKey);
+      const vb = sortValue(b, sortKey);
+      if(va < vb) return sortDir === "asc" ? -1 : 1;
+      if(va > vb) return sortDir === "asc" ? 1 : -1;
+      return 0;
     });
 
     countText.textContent = `(${filtered.length}건 / 전체 ${records.length}건)`;
@@ -405,33 +481,41 @@
 
     filtered.forEach(r => {
       const tr = document.createElement("tr");
+
       const addr = `${escapeHtml(r.sido||"")} ${escapeHtml(r.sigungu||"")}`.trim();
-      const job = r.jobType === "기타" ? `기타: ${escapeHtml(r.jobText||"")}` : escapeHtml(r.jobType||"");
-      const birth = `${escapeHtml(r.birthYear||"")}.${escapeHtml(r.birthMonth||"")}.${escapeHtml(r.birthDay||"")} (${escapeHtml(r.birthCal||"")})`
-        .replaceAll("..",".");
+      const job = r.jobType === "기타"
+        ? (r.jobText ? `기타: ${escapeHtml(r.jobText)}` : "기타")
+        : escapeHtml(r.jobType||"");
+
+      const birth = (r.birthYear || r.birthMonth || r.birthDay || r.birthCal)
+        ? `${escapeHtml(r.birthYear||"")}.${escapeHtml(r.birthMonth||"")}.${escapeHtml(r.birthDay||"")} (${escapeHtml(r.birthCal||"")})`
+        : "-";
+
+      const created = r.createdAt ? new Date(r.createdAt).toLocaleString() : "";
 
       tr.innerHTML = `
+        <td class="muted">${escapeHtml(created)}</td>
         <td><strong>${escapeHtml(r.name||"")}</strong></td>
         <td>${escapeHtml(r.phone||"")}</td>
         <td>${addr || '<span class="muted">-</span>'}</td>
         <td>${job || '<span class="muted">-</span>'}</td>
-        <td>${birth || '<span class="muted">-</span>'}</td>
+        <td>${birth}</td>
         <td>
-          <span class="pill">1학년 ${escapeHtml(r.g1||"")}반</span><br/>
-          <span class="pill">2학년 ${escapeHtml(r.g2||"")}반</span><br/>
-          <span class="pill">3학년 ${escapeHtml(r.g3||"")}반</span>
+          <span class="pill">1학년 ${escapeHtml(r.g1||"1")}반</span><br/>
+          <span class="pill">2학년 ${escapeHtml(r.g2||"1")}반</span><br/>
+          <span class="pill">3학년 ${escapeHtml(r.g3||"1")}반</span>
         </td>
         <td>
           <div class="btns">
             <button class="secondary" data-act="edit" data-id="${escapeAttr(r.id)}">수정</button>
             <button class="danger" data-act="del" data-id="${escapeAttr(r.id)}">삭제</button>
           </div>
-          <div class="muted" style="margin-top:6px;">${r.createdAt ? escapeHtml(new Date(r.createdAt).toLocaleString()) : ""}</div>
         </td>
       `;
       tbody.appendChild(tr);
     });
 
+    // 행 버튼 이벤트
     tbody.querySelectorAll("button[data-act]").forEach(btn => {
       btn.addEventListener("click", async () => {
         const id = btn.dataset.id;
@@ -439,6 +523,33 @@
         if (act === "edit") startEdit(id);
         if (act === "del") await delOne(id);
       });
+    });
+
+    // 헤더 정렬 버튼 이벤트 + 화살표 표시
+    document.querySelectorAll("th .sort").forEach(btn => {
+      btn.onclick = () => {
+        const key = btn.dataset.sort;
+
+        if (sortKey === key) {
+          sortDir = (sortDir === "asc") ? "desc" : "asc";
+        } else {
+          sortKey = key;
+          sortDir = (key === "createdAt") ? "desc" : "asc";
+        }
+
+        document.querySelectorAll("th .sort").forEach(b => {
+          b.classList.remove("asc","desc");
+          if (b.dataset.sort === sortKey) b.classList.add(sortDir);
+        });
+
+        render();
+      };
+    });
+
+    // 기본 화살표 표시(최신 desc)
+    document.querySelectorAll("th .sort").forEach(b => {
+      b.classList.remove("asc","desc");
+      if (b.dataset.sort === sortKey) b.classList.add(sortDir);
     });
   }
 
@@ -501,6 +612,7 @@
       const res = await fetch(url, { method:"GET" });
       const json = await res.json();
       if (!json.ok) throw new Error(json.error || "list failed");
+
       records = Array.isArray(json.rows) ? json.rows : [];
       render();
       if (forceToast) toast("목록 새로고침 완료");
@@ -512,6 +624,7 @@
   }
 
   async function apiPost(payload) {
+    // ✅ CORS preflight 회피(모바일 안정)
     const res = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
