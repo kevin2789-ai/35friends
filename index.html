@@ -479,4 +479,209 @@
       const y = String(r.birthYear||"").padStart(4,"0");
       const m = String(r.birthMonth||"").padStart(2,"0");
       const d = String(r.birthDay||"").padStart(2,"0");
-      return `${y}-${m}-
+      return `${y}-${m}-${d}-${r.birthCal||""}`;
+    }
+
+    return String(r[key] ?? "").toLowerCase();
+  }
+
+  function render() {
+    const q = searchEl.value.trim().toLowerCase();
+
+    let filtered = records.filter(r => {
+      if (!q) return true;
+      const birth = `${r.birthYear||""}.${r.birthMonth||""}.${r.birthDay||""} ${r.birthCal||""}`;
+      const job = (r.jobType === "기타") ? `기타 ${r.jobText||""}` : (r.jobType||"");
+      const addr = `${r.sido||""} ${r.sigungu||""}`.trim();
+      const blob = `${r.name||""} ${r.phone||""} ${addr} ${job} ${birth}`.toLowerCase();
+      return blob.includes(q);
+    });
+
+    filtered.sort((a,b)=>{
+      const va = sortValue(a, sortKey);
+      const vb = sortValue(b, sortKey);
+      if(va < vb) return sortDir === "asc" ? -1 : 1;
+      if(va > vb) return sortDir === "asc" ? 1 : -1;
+      return 0;
+    });
+
+    countText.textContent = `(${filtered.length}건 / 전체 ${records.length}건)`;
+    tbody.innerHTML = "";
+
+    filtered.forEach(r => {
+      const tr = document.createElement("tr");
+
+      const addr = `${escapeHtml(r.sido||"")} ${escapeHtml(r.sigungu||"")}`.trim();
+      const job = r.jobType === "기타"
+        ? (r.jobText ? `기타: ${escapeHtml(r.jobText)}` : "기타")
+        : escapeHtml(r.jobType||"");
+
+      const birth = (r.birthYear || r.birthMonth || r.birthDay || r.birthCal)
+        ? `${escapeHtml(r.birthYear||"")}.${escapeHtml(r.birthMonth||"")}.${escapeHtml(r.birthDay||"")} (${escapeHtml(r.birthCal||"")})`
+        : "-";
+
+      const created = r.createdAt ? new Date(r.createdAt).toLocaleString() : "";
+
+      tr.innerHTML = `
+        <td class="muted">${escapeHtml(created)}</td>
+        <td><strong>${escapeHtml(r.name||"")}</strong></td>
+        <td>${escapeHtml(r.phone||"")}</td>
+        <td>${addr || '<span class="muted">-</span>'}</td>
+        <td>${job || '<span class="muted">-</span>'}</td>
+        <td>${birth}</td>
+        <td>
+          <span class="pill">1학년 ${escapeHtml(r.g1||"1")}반</span><br/>
+          <span class="pill">2학년 ${escapeHtml(r.g2||"1")}반</span><br/>
+          <span class="pill">3학년 ${escapeHtml(r.g3||"1")}반</span>
+        </td>
+        <td>
+          <div class="btns">
+            <button class="secondary" data-act="edit" data-id="${escapeAttr(r.id)}">수정</button>
+            <button class="danger" data-act="del" data-id="${escapeAttr(r.id)}">삭제</button>
+          </div>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    tbody.querySelectorAll("button[data-act]").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const id = btn.dataset.id;
+        const act = btn.dataset.act;
+        if (act === "edit") startEdit(id);
+        if (act === "del") await delOne(id);
+      });
+    });
+
+    document.querySelectorAll("th .sort").forEach(btn => {
+      btn.onclick = () => {
+        const key = btn.dataset.sort;
+
+        if (sortKey === key) {
+          sortDir = (sortDir === "asc") ? "desc" : "asc";
+        } else {
+          sortKey = key;
+          sortDir = (key === "createdAt") ? "desc" : "asc";
+        }
+
+        document.querySelectorAll("th .sort").forEach(b => {
+          b.classList.remove("asc","desc");
+          if (b.dataset.sort === sortKey) b.classList.add(sortDir);
+        });
+
+        render();
+      };
+    });
+
+    document.querySelectorAll("th .sort").forEach(b => {
+      b.classList.remove("asc","desc");
+      if (b.dataset.sort === sortKey) b.classList.add(sortDir);
+    });
+  }
+
+  function startEdit(id) {
+    const r = records.find(x => String(x.id) === String(id));
+    if (!r) return;
+
+    editingId = String(id);
+    saveBtn.textContent = "수정 저장";
+
+    nameEl.value = r.name || "";
+    phoneEl.value = r.phone || "";
+
+    if (r.sido) {
+      sidoEl.value = r.sido;
+      fillSigungu(r.sido);
+      sigunguEl.value = r.sigungu || sigunguEl.value;
+    }
+
+    g1El.value = String(r.g1 || "1");
+    g2El.value = String(r.g2 || "1");
+    g3El.value = String(r.g3 || "1");
+
+    jobTypeEl.value = r.jobType || "회사원";
+    onJobTypeChange();
+    jobTextEl.value = r.jobText || "";
+
+    birthCalEl.value = r.birthCal || "양력";
+    birthYearEl.value = String(r.birthYear || YEARS[0]);
+    birthMonthEl.value = String(r.birthMonth || MONTHS[0]);
+    syncDays();
+    birthDayEl.value = String(r.birthDay || "1");
+
+    toast(`수정 중: ${r.name || ""}`);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    nameEl.focus();
+  }
+
+  async function delOne(id) {
+    const r = records.find(x => String(x.id) === String(id));
+    if (!confirm(`${r?.name || ""} 항목을 삭제할까요?`)) return;
+
+    setBusy(true);
+    try {
+      await apiPost({ action:"delete", id: String(id) });
+      toast("삭제 완료");
+      if (editingId === String(id)) resetForm();
+      await loadList();
+    } catch (err) {
+      toast("오류: " + String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function loadList(forceToast=false) {
+    setBusy(true);
+    try {
+      const url = `${API_URL}?action=list&ts=${Date.now()}`;
+      const res = await fetch(url, { method:"GET" });
+      const json = await res.json();
+      if (!json.ok) throw new Error(json.error || "list failed");
+
+      records = Array.isArray(json.rows) ? json.rows : [];
+      render();
+      if (forceToast) toast("목록 새로고침 완료");
+    } catch (err) {
+      toast("목록 불러오기 실패: " + String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function apiPost(payload) {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(payload),
+    });
+    const json = await res.json();
+    if (!json.ok) throw new Error(json.error || "request failed");
+    return json;
+  }
+
+  function setBusy(b) {
+    saveBtn.disabled = b;
+    resetBtn.disabled = b;
+    reloadBtn.disabled = b;
+  }
+
+  function toast(msg) {
+    status.textContent = msg;
+    setTimeout(() => { if (status.textContent === msg) status.textContent = ""; }, 3500);
+    return null;
+  }
+
+  function escapeHtml(s) {
+    return String(s)
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
+  }
+  function escapeAttr(s) { return escapeHtml(s).replaceAll('"', "&quot;"); }
+})();
+</script>
+</body>
+</html>
