@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
- <title>광운35회 친구들 모임</title>
+  <title>광운35회 친구들 모임</title>
   <style>
     :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", sans-serif; }
     body { margin:0; background:#f6f7fb; color:#111; }
@@ -76,9 +76,11 @@
             <label>이름</label>
             <input id="name" required placeholder="예: 홍길동" />
           </div>
+
           <div class="col-6">
             <label>연락처</label>
-            <input id="phone" required placeholder="예: 010-1234-5678" inputmode="tel" />
+            <input id="phone" required placeholder="숫자만 입력 (예: 01012345678)" inputmode="numeric" />
+            <div class="muted">※ 숫자만 입력하면 자동으로 '-'가 들어갑니다.</div>
           </div>
 
           <div class="col-6">
@@ -162,7 +164,7 @@
       </div>
 
       <div class="notice" style="margin-bottom:10px;">
-        정렬: 기본은 <b>최신(▼)</b> 입니다. 헤더를 누르면 오름/내림 정렬됩니다.
+        기본 정렬은 <b>최신(▼)</b> 입니다. 헤더를 누르면 오름/내림 정렬됩니다.
       </div>
 
       <div style="overflow:auto;">
@@ -187,10 +189,9 @@
 
 <script>
 (() => {
-  // ✅ Apps Script Web App (/exec)
+  // ✅ 본인 Apps Script Web App (/exec) 주소
   const API_URL = "https://script.google.com/macros/s/AKfycbwoQgFscJc5mtAhSakeNL9x2MG0HPXIFGKHbreZYsVNLHsXeEJ5Rmqj1iWC20PdfxLsGw/exec";
 
-  // ✅ 시/도 -> 구/군/시
   const REGION = {
     "서울특별시": ["강남구","강동구","강북구","강서구","관악구","광진구","구로구","금천구","노원구","도봉구","동대문구","동작구","마포구","서대문구","서초구","성동구","성북구","송파구","양천구","영등포구","용산구","은평구","종로구","중구","중랑구"],
     "부산광역시": ["강서구","금정구","기장군","남구","동구","동래구","부산진구","북구","사상구","사하구","서구","수영구","연제구","영도구","중구","해운대구"],
@@ -255,6 +256,17 @@
   initSelects();
   loadList();
 
+  // 전화번호: 숫자 입력 -> 자동 하이픈
+  phoneEl.addEventListener("input", () => {
+    const cursor = phoneEl.selectionStart || 0;
+    const before = phoneEl.value;
+    const formatted = formatPhoneKR(before);
+    phoneEl.value = formatted;
+    const diff = formatted.length - before.length;
+    const nextPos = Math.max(0, cursor + diff);
+    try { phoneEl.setSelectionRange(nextPos, nextPos); } catch(e) {}
+  });
+
   sidoEl.addEventListener("change", () => fillSigungu(sidoEl.value));
   jobTypeEl.addEventListener("change", onJobTypeChange);
   birthYearEl.addEventListener("change", syncDays);
@@ -286,6 +298,26 @@
       setBusy(false);
     }
   });
+
+  function formatPhoneKR(raw) {
+    const digits = String(raw || "").replace(/\D/g, "");
+
+    // 02 지역번호(서울) 예외
+    if (digits.startsWith("02")) {
+      if (digits.length <= 2) return digits;
+      if (digits.length <= 5) return `${digits.slice(0,2)}-${digits.slice(2)}`;
+      if (digits.length <= 9) return `${digits.slice(0,2)}-${digits.slice(2, digits.length-4)}-${digits.slice(-4)}`;
+      return `${digits.slice(0,2)}-${digits.slice(2, digits.length-4)}-${digits.slice(-4)}`;
+    }
+
+    // 휴대폰/일반(3자리)
+    if (digits.length <= 3) return digits;
+    if (digits.length <= 7) return `${digits.slice(0,3)}-${digits.slice(3)}`;
+    if (digits.length === 10) return `${digits.slice(0,3)}-${digits.slice(3,6)}-${digits.slice(6)}`;
+    if (digits.length >= 11) return `${digits.slice(0,3)}-${digits.slice(3,7)}-${digits.slice(7,11)}`;
+
+    return digits;
+  }
 
   function initSelects() {
     // 시/도
@@ -380,11 +412,10 @@
 
   function readForm() {
     const name = nameEl.value.trim();
-    const phone = phoneEl.value.trim();
+    const phone = formatPhoneKR(phoneEl.value.trim());
     const sido = sidoEl.value;
     const sigungu = sigunguEl.value;
 
-    // 기본값 보강 (선택 안 해도 1반)
     const g1 = g1El.value || "1";
     const g2 = g2El.value || "1";
     const g3 = g3El.value || "1";
@@ -433,7 +464,6 @@
     nameEl.focus();
   }
 
-  // ---- 정렬 값 생성 ----
   function sortValue(r, key){
     if(key === "createdAt") return String(r.createdAt || "");
 
@@ -449,214 +479,4 @@
       const y = String(r.birthYear||"").padStart(4,"0");
       const m = String(r.birthMonth||"").padStart(2,"0");
       const d = String(r.birthDay||"").padStart(2,"0");
-      return `${y}-${m}-${d}-${r.birthCal||""}`;
-    }
-
-    return String(r[key] ?? "").toLowerCase();
-  }
-
-  function render() {
-    const q = searchEl.value.trim().toLowerCase();
-
-    let filtered = records.filter(r => {
-      if (!q) return true;
-      const birth = `${r.birthYear||""}.${r.birthMonth||""}.${r.birthDay||""} ${r.birthCal||""}`;
-      const job = (r.jobType === "기타") ? `기타 ${r.jobText||""}` : (r.jobType||"");
-      const addr = `${r.sido||""} ${r.sigungu||""}`.trim();
-      const blob = `${r.name||""} ${r.phone||""} ${addr} ${job} ${birth}`.toLowerCase();
-      return blob.includes(q);
-    });
-
-    // ✅ 필터 후 정렬(기본: createdAt desc)
-    filtered.sort((a,b)=>{
-      const va = sortValue(a, sortKey);
-      const vb = sortValue(b, sortKey);
-      if(va < vb) return sortDir === "asc" ? -1 : 1;
-      if(va > vb) return sortDir === "asc" ? 1 : -1;
-      return 0;
-    });
-
-    countText.textContent = `(${filtered.length}건 / 전체 ${records.length}건)`;
-    tbody.innerHTML = "";
-
-    filtered.forEach(r => {
-      const tr = document.createElement("tr");
-
-      const addr = `${escapeHtml(r.sido||"")} ${escapeHtml(r.sigungu||"")}`.trim();
-      const job = r.jobType === "기타"
-        ? (r.jobText ? `기타: ${escapeHtml(r.jobText)}` : "기타")
-        : escapeHtml(r.jobType||"");
-
-      const birth = (r.birthYear || r.birthMonth || r.birthDay || r.birthCal)
-        ? `${escapeHtml(r.birthYear||"")}.${escapeHtml(r.birthMonth||"")}.${escapeHtml(r.birthDay||"")} (${escapeHtml(r.birthCal||"")})`
-        : "-";
-
-      const created = r.createdAt ? new Date(r.createdAt).toLocaleString() : "";
-
-      tr.innerHTML = `
-        <td class="muted">${escapeHtml(created)}</td>
-        <td><strong>${escapeHtml(r.name||"")}</strong></td>
-        <td>${escapeHtml(r.phone||"")}</td>
-        <td>${addr || '<span class="muted">-</span>'}</td>
-        <td>${job || '<span class="muted">-</span>'}</td>
-        <td>${birth}</td>
-        <td>
-          <span class="pill">1학년 ${escapeHtml(r.g1||"1")}반</span><br/>
-          <span class="pill">2학년 ${escapeHtml(r.g2||"1")}반</span><br/>
-          <span class="pill">3학년 ${escapeHtml(r.g3||"1")}반</span>
-        </td>
-        <td>
-          <div class="btns">
-            <button class="secondary" data-act="edit" data-id="${escapeAttr(r.id)}">수정</button>
-            <button class="danger" data-act="del" data-id="${escapeAttr(r.id)}">삭제</button>
-          </div>
-        </td>
-      `;
-      tbody.appendChild(tr);
-    });
-
-    // 행 버튼 이벤트
-    tbody.querySelectorAll("button[data-act]").forEach(btn => {
-      btn.addEventListener("click", async () => {
-        const id = btn.dataset.id;
-        const act = btn.dataset.act;
-        if (act === "edit") startEdit(id);
-        if (act === "del") await delOne(id);
-      });
-    });
-
-    // 헤더 정렬 버튼 이벤트 + 화살표 표시
-    document.querySelectorAll("th .sort").forEach(btn => {
-      btn.onclick = () => {
-        const key = btn.dataset.sort;
-
-        if (sortKey === key) {
-          sortDir = (sortDir === "asc") ? "desc" : "asc";
-        } else {
-          sortKey = key;
-          sortDir = (key === "createdAt") ? "desc" : "asc";
-        }
-
-        document.querySelectorAll("th .sort").forEach(b => {
-          b.classList.remove("asc","desc");
-          if (b.dataset.sort === sortKey) b.classList.add(sortDir);
-        });
-
-        render();
-      };
-    });
-
-    // 기본 화살표 표시(최신 desc)
-    document.querySelectorAll("th .sort").forEach(b => {
-      b.classList.remove("asc","desc");
-      if (b.dataset.sort === sortKey) b.classList.add(sortDir);
-    });
-  }
-
-  function startEdit(id) {
-    const r = records.find(x => String(x.id) === String(id));
-    if (!r) return;
-
-    editingId = String(id);
-    saveBtn.textContent = "수정 저장";
-
-    nameEl.value = r.name || "";
-    phoneEl.value = r.phone || "";
-
-    if (r.sido) {
-      sidoEl.value = r.sido;
-      fillSigungu(r.sido);
-      sigunguEl.value = r.sigungu || sigunguEl.value;
-    }
-
-    g1El.value = String(r.g1 || "1");
-    g2El.value = String(r.g2 || "1");
-    g3El.value = String(r.g3 || "1");
-
-    jobTypeEl.value = r.jobType || "회사원";
-    onJobTypeChange();
-    jobTextEl.value = r.jobText || "";
-
-    birthCalEl.value = r.birthCal || "양력";
-    birthYearEl.value = String(r.birthYear || YEARS[0]);
-    birthMonthEl.value = String(r.birthMonth || MONTHS[0]);
-    syncDays();
-    birthDayEl.value = String(r.birthDay || "1");
-
-    toast(`수정 중: ${r.name || ""}`);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-    nameEl.focus();
-  }
-
-  async function delOne(id) {
-    const r = records.find(x => String(x.id) === String(id));
-    if (!confirm(`${r?.name || ""} 항목을 삭제할까요?`)) return;
-
-    setBusy(true);
-    try {
-      await apiPost({ action:"delete", id: String(id) });
-      toast("삭제 완료");
-      if (editingId === String(id)) resetForm();
-      await loadList();
-    } catch (err) {
-      toast("오류: " + String(err));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function loadList(forceToast=false) {
-    setBusy(true);
-    try {
-      const url = `${API_URL}?action=list&ts=${Date.now()}`;
-      const res = await fetch(url, { method:"GET" });
-      const json = await res.json();
-      if (!json.ok) throw new Error(json.error || "list failed");
-
-      records = Array.isArray(json.rows) ? json.rows : [];
-      render();
-      if (forceToast) toast("목록 새로고침 완료");
-    } catch (err) {
-      toast("목록 불러오기 실패: " + String(err));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function apiPost(payload) {
-    // ✅ CORS preflight 회피(모바일 안정)
-    const res = await fetch(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify(payload),
-    });
-    const json = await res.json();
-    if (!json.ok) throw new Error(json.error || "request failed");
-    return json;
-  }
-
-  function setBusy(b) {
-    saveBtn.disabled = b;
-    resetBtn.disabled = b;
-    reloadBtn.disabled = b;
-  }
-
-  function toast(msg) {
-    status.textContent = msg;
-    setTimeout(() => { if (status.textContent === msg) status.textContent = ""; }, 3500);
-    return null;
-  }
-
-  function escapeHtml(s) {
-    return String(s)
-      .replaceAll("&","&amp;")
-      .replaceAll("<","&lt;")
-      .replaceAll(">","&gt;")
-      .replaceAll('"',"&quot;")
-      .replaceAll("'","&#039;");
-  }
-  function escapeAttr(s) { return escapeHtml(s).replaceAll('"', "&quot;"); }
-})();
-</script>
-</body>
-</html>
+      return `${y}-${m}-
