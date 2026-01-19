@@ -4,16 +4,18 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>광운35회 친구들 모임</title>
+
   <style>
     :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", sans-serif; }
     body { margin:0; background:#f6f7fb; color:#111; }
     .wrap { max-width:1100px; margin:0 auto; padding:16px; }
-    h1 { margin:8px 0 12px; font-size:20px; }
+    h1 { margin:8px 0 12px; font-size:20px; font-weight:900; }
     .card { background:#fff; border-radius:14px; box-shadow:0 6px 18px rgba(0,0,0,.06); padding:14px; }
     .grid { display:grid; gap:12px; grid-template-columns:repeat(12, 1fr); }
     .col-12{grid-column:span 12;}
     .col-6{grid-column:span 6;}
     .col-4{grid-column:span 4;}
+    .col-3{grid-column:span 3;}
     label{display:block; font-size:12px; color:#555; margin-bottom:6px;}
     input, select, button{
       width:100%; box-sizing:border-box;
@@ -21,7 +23,7 @@
       border:1px solid #d8dbe6; background:#fff; font-size:14px;
     }
     input:focus, select:focus{ outline:2px solid rgba(99,102,241,.25); border-color:#6366f1; }
-    button{ cursor:pointer; border:none; background:#6366f1; color:#fff; font-weight:800; }
+    button{ cursor:pointer; border:none; background:#6366f1; color:#fff; font-weight:900; }
     button.secondary{ background:#eef0ff; color:#2c2f7a; border:1px solid #d8dbff; }
     button.danger{ background:#ef4444; }
     button:disabled{ opacity:.6; cursor:not-allowed; }
@@ -42,7 +44,7 @@
       border:none;
       padding:0;
       font:inherit;
-      font-weight:800;
+      font-weight:900;
       color:#2c2f7a;
       cursor:pointer;
       width:auto;
@@ -58,7 +60,7 @@
     th .sort.desc:after{ content:"▼"; }
 
     @media (max-width:760px){
-      .col-6,.col-4{grid-column:span 12;}
+      .col-6,.col-4,.col-3{grid-column:span 12;}
       .actions{justify-content:stretch;}
       .btns button{ flex:1; }
     }
@@ -134,8 +136,18 @@
               <option value="음력">음력</option>
             </select>
           </div>
+
+          <!-- ✅ 추가: 2026 회비납부 -->
           <div class="col-6">
-            <label class="muted">※ 월에 따라 ‘일’ 범위 자동 조정</label>
+            <label>2026년 회비납부</label>
+            <select id="fee2026" required>
+              <option value="NO" selected>NO</option>
+              <option value="YES">YES</option>
+            </select>
+            <div class="muted">※ YES/NO만 선택 가능합니다.</div>
+          </div>
+
+          <div class="col-12">
             <div class="muted" id="birthHint"></div>
           </div>
 
@@ -159,7 +171,7 @@
           <span class="muted" id="countText"></span>
         </div>
         <div style="min-width:260px;">
-          <input id="search" placeholder="이름/연락처/주소/하는일/생일 검색" />
+          <input id="search" placeholder="이름/연락처/주소/하는일/생일/회비 검색" />
         </div>
       </div>
 
@@ -177,6 +189,8 @@
               <th><button type="button" class="sort" data-sort="addr">주소</button></th>
               <th><button type="button" class="sort" data-sort="job">하는 일</button></th>
               <th><button type="button" class="sort" data-sort="birth">생일</button></th>
+              <!-- ✅ 추가: 회비 정렬 -->
+              <th><button type="button" class="sort" data-sort="fee2026">회비(2026)</button></th>
               <th style="min-width:130px;">학년/반</th>
               <th style="min-width:160px;">관리</th>
             </tr>
@@ -189,7 +203,7 @@
 
 <script>
 (() => {
-  // ✅ 본인 Apps Script Web App (/exec) 주소
+  // ✅ 본인 Apps Script Web App (/exec) 주소로 맞추세요
   const API_URL = "https://script.google.com/macros/s/AKfycbwoQgFscJc5mtAhSakeNL9x2MG0HPXIFGKHbreZYsVNLHsXeEJ5Rmqj1iWC20PdfxLsGw/exec";
 
   const REGION = {
@@ -242,6 +256,9 @@
   const birthCalEl = $("birthCal");
   const birthHint = $("birthHint");
 
+  // ✅ 추가: 회비
+  const fee2026El = $("fee2026");
+
   const saveBtn = $("saveBtn");
   const resetBtn = $("resetBtn");
   const reloadBtn = $("reloadBtn");
@@ -249,14 +266,13 @@
   let records = [];
   let editingId = null;
 
-  // ✅ 기본 정렬: 최신 저장순(createdAt desc)
+  // 기본 정렬: 최신 저장순
   let sortKey = "createdAt";
   let sortDir = "desc";
 
   initSelects();
   loadList();
 
-  // 전화번호: 숫자 입력 -> 자동 하이픈
   phoneEl.addEventListener("input", () => {
     const cursor = phoneEl.selectionStart || 0;
     const before = phoneEl.value;
@@ -301,21 +317,16 @@
 
   function formatPhoneKR(raw) {
     const digits = String(raw || "").replace(/\D/g, "");
-
-    // 02 지역번호(서울) 예외
     if (digits.startsWith("02")) {
       if (digits.length <= 2) return digits;
       if (digits.length <= 5) return `${digits.slice(0,2)}-${digits.slice(2)}`;
       if (digits.length <= 9) return `${digits.slice(0,2)}-${digits.slice(2, digits.length-4)}-${digits.slice(-4)}`;
       return `${digits.slice(0,2)}-${digits.slice(2, digits.length-4)}-${digits.slice(-4)}`;
     }
-
-    // 휴대폰/일반(3자리)
     if (digits.length <= 3) return digits;
     if (digits.length <= 7) return `${digits.slice(0,3)}-${digits.slice(3)}`;
     if (digits.length === 10) return `${digits.slice(0,3)}-${digits.slice(3,6)}-${digits.slice(6)}`;
     if (digits.length >= 11) return `${digits.slice(0,3)}-${digits.slice(3,7)}-${digits.slice(7,11)}`;
-
     return digits;
   }
 
@@ -428,6 +439,8 @@
     const birthDay = birthDayEl.value;
     const birthCal = birthCalEl.value;
 
+    const fee2026 = fee2026El.value || "NO";
+
     if (!name) return toast("이름을 입력하세요.");
     if (!phone) return toast("연락처를 입력하세요.");
     if (!sido || !sigungu) return toast("주소를 선택하세요.");
@@ -438,7 +451,8 @@
       name, phone, sido, sigungu,
       g1, g2, g3,
       jobType, jobText,
-      birthYear, birthMonth, birthDay, birthCal
+      birthYear, birthMonth, birthDay, birthCal,
+      fee2026
     };
   }
 
@@ -451,7 +465,6 @@
     fillSigungu(sidoEl.value);
 
     g1El.value = "1"; g2El.value = "1"; g3El.value = "1";
-
     jobTypeEl.selectedIndex = 0;
     onJobTypeChange();
 
@@ -460,15 +473,15 @@
     birthMonthEl.selectedIndex = 0;
     syncDays();
 
+    fee2026El.value = "NO";
+
     status.textContent = "";
     nameEl.focus();
   }
 
   function sortValue(r, key){
     if(key === "createdAt") return String(r.createdAt || "");
-
-    if(key === "addr")
-      return `${r.sido||""} ${r.sigungu||""}`.trim().toLowerCase();
+    if(key === "addr") return `${r.sido||""} ${r.sigungu||""}`.trim().toLowerCase();
 
     if(key === "job"){
       const j = (r.jobType === "기타") ? (r.jobText || "") : (r.jobType || "");
@@ -482,6 +495,8 @@
       return `${y}-${m}-${d}-${r.birthCal||""}`;
     }
 
+    if(key === "fee2026") return String(r.fee2026 || "");
+
     return String(r[key] ?? "").toLowerCase();
   }
 
@@ -493,7 +508,8 @@
       const birth = `${r.birthYear||""}.${r.birthMonth||""}.${r.birthDay||""} ${r.birthCal||""}`;
       const job = (r.jobType === "기타") ? `기타 ${r.jobText||""}` : (r.jobType||"");
       const addr = `${r.sido||""} ${r.sigungu||""}`.trim();
-      const blob = `${r.name||""} ${r.phone||""} ${addr} ${job} ${birth}`.toLowerCase();
+      const fee = `${r.fee2026||""}`;
+      const blob = `${r.name||""} ${r.phone||""} ${addr} ${job} ${birth} ${fee}`.toLowerCase();
       return blob.includes(q);
     });
 
@@ -521,6 +537,7 @@
         : "-";
 
       const created = r.createdAt ? new Date(r.createdAt).toLocaleString() : "";
+      const fee = escapeHtml(r.fee2026 || "NO");
 
       tr.innerHTML = `
         <td class="muted">${escapeHtml(created)}</td>
@@ -529,6 +546,7 @@
         <td>${addr || '<span class="muted">-</span>'}</td>
         <td>${job || '<span class="muted">-</span>'}</td>
         <td>${birth}</td>
+        <td><span class="pill">${fee}</span></td>
         <td>
           <span class="pill">1학년 ${escapeHtml(r.g1||"1")}반</span><br/>
           <span class="pill">2학년 ${escapeHtml(r.g2||"1")}반</span><br/>
@@ -608,6 +626,8 @@
     birthMonthEl.value = String(r.birthMonth || MONTHS[0]);
     syncDays();
     birthDayEl.value = String(r.birthDay || "1");
+
+    fee2026El.value = r.fee2026 || "NO";
 
     toast(`수정 중: ${r.name || ""}`);
     window.scrollTo({ top: 0, behavior: "smooth" });
