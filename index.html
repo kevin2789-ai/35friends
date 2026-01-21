@@ -1,5 +1,205 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>광운35회 친구들 모임</title>
+
+  <style>
+    :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", sans-serif; }
+    body { margin:0; background:#f6f7fb; color:#111; }
+    .wrap { max-width:1100px; margin:0 auto; padding:16px; }
+    h1 { margin:8px 0 12px; font-size:20px; font-weight:900; }
+    .card { background:#fff; border-radius:14px; box-shadow:0 6px 18px rgba(0,0,0,.06); padding:14px; }
+    .grid { display:grid; gap:12px; grid-template-columns:repeat(12, 1fr); }
+    .col-12{grid-column:span 12;}
+    .col-6{grid-column:span 6;}
+    .col-4{grid-column:span 4;}
+    label{display:block; font-size:12px; color:#555; margin-bottom:6px;}
+    input, select, button{
+      width:100%; box-sizing:border-box;
+      padding:11px 11px; border-radius:12px;
+      border:1px solid #d8dbe6; background:#fff; font-size:14px;
+    }
+    input:focus, select:focus{ outline:2px solid rgba(99,102,241,.25); border-color:#6366f1; }
+    button{ cursor:pointer; border:none; background:#6366f1; color:#fff; font-weight:900; }
+    button.secondary{ background:#eef0ff; color:#2c2f7a; border:1px solid #d8dbff; }
+    button.danger{ background:#ef4444; }
+    button:disabled{ opacity:.6; cursor:not-allowed; }
+    .actions{ display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
+    .muted{ color:#666; font-size:12px; }
+    .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between; }
+    table{ width:100%; border-collapse:collapse; }
+    th, td{ border-bottom:1px solid #eef0f6; padding:10px 6px; text-align:left; font-size:13px; vertical-align:top;}
+    th{ font-size:12px; color:#555; white-space:nowrap; }
+    .pill{ display:inline-block; padding:4px 8px; background:#f1f5ff; border:1px solid #dfe6ff; border-radius:999px; font-size:12px; color:#2c2f7a; }
+    .btns{ display:flex; gap:6px; flex-wrap:wrap; }
+    .btns button{ padding:7px 10px; font-size:12px; border-radius:10px; width:auto; }
+    .notice{ padding:10px 12px; border-radius:12px; background:#fffbe6; border:1px solid #ffe58f; color:#614700; font-size:12px; }
+
+    th .sort{
+      background:transparent;
+      border:none;
+      padding:0;
+      font:inherit;
+      font-weight:900;
+      color:#2c2f7a;
+      cursor:pointer;
+      width:auto;
+    }
+    th .sort:after{
+      content:"";
+      display:inline-block;
+      width:12px;
+      margin-left:6px;
+      opacity:.65;
+    }
+    th .sort.asc:after{ content:"▲"; }
+    th .sort.desc:after{ content:"▼"; }
+
+    @media (max-width:760px){
+      .col-6,.col-4{grid-column:span 12;}
+      .actions{justify-content:stretch;}
+      .btns button{ flex:1; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <h1>광운35회 친구들 모임</h1>
+
+    <div class="card" style="margin-bottom:14px;">
+      <form id="form">
+        <div class="grid">
+          <div class="col-6">
+            <label>이름</label>
+            <input id="name" required placeholder="예: 홍길동" />
+          </div>
+
+          <div class="col-6">
+            <label>연락처</label>
+            <input id="phone" required placeholder="숫자만 입력 (예: 01012345678)" inputmode="numeric" />
+            <div class="muted">※ 숫자만 입력하면 자동으로 '-'가 들어갑니다.</div>
+          </div>
+
+          <div class="col-6">
+            <label>주소 - 시/도</label>
+            <select id="sido" required></select>
+          </div>
+          <div class="col-6">
+            <label>주소 - 구/군/시</label>
+            <select id="sigungu" required></select>
+          </div>
+
+          <div class="col-4">
+            <label>1학년 (1~6반)</label>
+            <select id="g1" required></select>
+          </div>
+          <div class="col-4">
+            <label>2학년 (1~6반)</label>
+            <select id="g2" required></select>
+          </div>
+          <div class="col-4">
+            <label>3학년 (1~6반)</label>
+            <select id="g3" required></select>
+          </div>
+
+          <div class="col-6">
+            <label>하는 일</label>
+            <select id="jobType" required></select>
+          </div>
+          <div class="col-6" id="jobTextWrap" style="display:none;">
+            <label>기타(직접 입력)</label>
+            <input id="jobText" placeholder="예: 프리랜서, 은퇴, 주부 등" />
+          </div>
+
+          <div class="col-4">
+            <label>생일 - 연도(1965~1972)</label>
+            <select id="birthYear" required></select>
+          </div>
+          <div class="col-4">
+            <label>생일 - 월</label>
+            <select id="birthMonth" required></select>
+          </div>
+          <div class="col-4">
+            <label>생일 - 일</label>
+            <select id="birthDay" required></select>
+          </div>
+
+          <div class="col-6">
+            <label>음력/양력</label>
+            <select id="birthCal" required>
+              <option value="양력" selected>양력</option>
+              <option value="음력">음력</option>
+            </select>
+          </div>
+
+          <div class="col-6">
+            <label>2026년 회비납부</label>
+            <select id="fee2026" required>
+              <option value="NO" selected>NO</option>
+              <option value="YES">YES</option>
+            </select>
+            <div class="muted">※ YES/NO만 선택 가능합니다.</div>
+          </div>
+
+          <div class="col-12">
+            <div class="muted" id="birthHint"></div>
+          </div>
+
+          <div class="col-12 actions">
+            <button type="submit" id="saveBtn">저장</button>
+            <button type="button" class="secondary" id="resetBtn">입력 초기화</button>
+            <button type="button" class="secondary" id="reloadBtn">목록 새로고침</button>
+          </div>
+
+          <div class="col-12">
+            <div class="muted" id="status"></div>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div class="card">
+      <div class="row" style="margin-bottom:10px;">
+        <div>
+          <strong>저장된 목록</strong>
+          <span class="muted" id="countText"></span>
+        </div>
+        <div style="min-width:260px;">
+          <input id="search" placeholder="이름/연락처/주소/하는일/생일/회비 검색" />
+        </div>
+      </div>
+
+      <div class="notice" style="margin-bottom:10px;">
+        기본 정렬은 <b>최신(▼)</b> 입니다. 헤더를 누르면 오름/내림 정렬됩니다.
+      </div>
+
+      <div style="overflow:auto;">
+        <table>
+          <thead>
+            <tr>
+              <th><button type="button" class="sort" data-sort="createdAt">최신</button></th>
+              <th><button type="button" class="sort" data-sort="name">이름</button></th>
+              <th><button type="button" class="sort" data-sort="phone">연락처</button></th>
+              <th><button type="button" class="sort" data-sort="addr">주소</button></th>
+              <th><button type="button" class="sort" data-sort="job">하는 일</button></th>
+              <th><button type="button" class="sort" data-sort="birth">생일</button></th>
+              <th><button type="button" class="sort" data-sort="fee2026">회비(2026)</button></th>
+              <th style="min-width:130px;">학년/반</th>
+              <th style="min-width:160px;">관리</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
 <script>
 (() => {
+  // ✅ 본인 Apps Script Web App (/exec) 주소
   const API_URL = "https://script.google.com/macros/s/AKfycbxKk9nfIit0opSEmgcrBFIUWVxXgV60X7C5uQCEU3u41_UIkd5LhqkX-clEekcxRSub1w/exec";
 
   const REGION = {
@@ -285,7 +485,7 @@
       return `${y}-${m}-${d}-${r.birthCal||""}`;
     }
 
-    if(key === "fee2026") return String(r.fee2026 || "");
+    if(key === "fee2026") return (String(r.fee2026 ?? "").trim().toUpperCase() === "YES") ? "YES" : "NO";
 
     return String(r[key] ?? "").toLowerCase();
   }
@@ -298,7 +498,7 @@
       const birth = `${r.birthYear||""}.${r.birthMonth||""}.${r.birthDay||""} ${r.birthCal||""}`;
       const job = (r.jobType === "기타") ? `기타 ${r.jobText||""}` : (r.jobType||"");
       const addr = `${r.sido||""} ${r.sigungu||""}`.trim();
-      const fee = `${r.fee2026||""}`;
+      const fee = (String(r.fee2026 ?? "").trim().toUpperCase() === "YES") ? "YES" : "NO";
       const blob = `${r.name||""} ${String(r.phone ?? "")} ${addr} ${job} ${birth} ${fee}`.toLowerCase();
       return blob.includes(q);
     });
@@ -318,7 +518,8 @@
       const tr = document.createElement("tr");
 
       const addr = `${escapeHtml(r.sido||"")} ${escapeHtml(r.sigungu||"")}`.trim();
-      const job = r.jobType === "기타"
+
+      const job = (r.jobType === "기타")
         ? (r.jobText ? `기타: ${escapeHtml(r.jobText)}` : "기타")
         : escapeHtml(r.jobType||"");
 
@@ -364,19 +565,16 @@
     document.querySelectorAll("th .sort").forEach(btn => {
       btn.onclick = () => {
         const key = btn.dataset.sort;
-
         if (sortKey === key) {
           sortDir = (sortDir === "asc") ? "desc" : "asc";
         } else {
           sortKey = key;
           sortDir = (key === "createdAt") ? "desc" : "asc";
         }
-
         document.querySelectorAll("th .sort").forEach(b => {
           b.classList.remove("asc","desc");
           if (b.dataset.sort === sortKey) b.classList.add(sortDir);
         });
-
         render();
       };
     });
@@ -479,7 +677,6 @@
   function toast(msg) {
     status.textContent = msg;
     setTimeout(() => { if (status.textContent === msg) status.textContent = ""; }, 3500);
-    return null;
   }
 
   function escapeHtml(s) {
@@ -493,3 +690,5 @@
   function escapeAttr(s) { return escapeHtml(s).replaceAll('"', "&quot;"); }
 })();
 </script>
+</body>
+</html>
